@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>A* Algorithm Visualization</title>
+    <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+
+    <style>
+        body {
+            font-family: Arial;
+            text-align: center;
+        }
+
+        #mynetwork {
+            width: 100%;
+            height: 500px;
+            border: 1px solid gray;
+        }
+
+        #output {
+            text-align: left;
+            margin-top: 20px;
+            padding: 10px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h2>A* Algorithm on Weighted Graph</h2>
+    <div id="mynetwork"></div>
+    <pre id="output"></pre>
+
+    <script>
+        // ---------------- GRAPH DATA ----------------
+        const heuristic = {
+            A: 7, B: 6, C: 2, D: 1, E: 1, F: 0
+        };
+
+        const graph = {
+            A: [{ node: "B", cost: 1 }, { node: "C", cost: 4 }],
+            B: [{ node: "D", cost: 2 }, { node: "E", cost: 5 }],
+            C: [{ node: "F", cost: 3 }],
+            D: [],
+            E: [{ node: "F", cost: 1 }],
+            F: []
+        };
+
+        // ---------------- VIS GRAPH ----------------
+        const nodes = new vis.DataSet([
+            { id: "A", label: "A\nh=7" },
+            { id: "B", label: "B\nh=6" },
+            { id: "C", label: "C\nh=2" },
+            { id: "D", label: "D\nh=1" },
+            { id: "E", label: "E\nh=1" },
+            { id: "F", label: "F\nh=0" }
+        ]);
+
+        const edges = new vis.DataSet([
+            { from: "A", to: "B", label: "1" },
+            { from: "A", to: "C", label: "4" },
+            { from: "B", to: "D", label: "2" },
+            { from: "B", to: "E", label: "5" },
+            { from: "C", to: "F", label: "3" },
+            { from: "E", to: "F", label: "1" }
+        ]);
+
+        const network = new vis.Network(
+            document.getElementById("mynetwork"),
+            { nodes, edges },
+            { edges: { arrows: "to" } }
+        );
+
+        // ---------------- A* ALGORITHM ----------------
+        function aStar(start, goal) {
+            let open = [start];
+            let closed = [];
+            let g = {};
+            let parent = {};
+
+            g[start] = 0;
+            parent[start] = null;
+
+            let output = "";
+
+            while (open.length > 0) {
+
+                // sort by f(n) = g + h
+                open.sort((a, b) => (g[a] + heuristic[a]) - (g[b] + heuristic[b]));
+                let current = open.shift();
+
+                output += `Current: ${current}\n`;
+
+                if (current === goal) {
+                    output += "\nGoal reached!\n";
+
+                    let path = [];
+                    let temp = current;
+
+                    while (temp) {
+                        path.push(temp);
+                        temp = parent[temp];
+                    }
+
+                    path.reverse();
+
+                    output += "Path: " + path.join(" → ") + "\n";
+
+                    // highlight path
+                    highlightPath(path);
+
+                    document.getElementById("output").innerText = output;
+                    return;
+                }
+
+                closed.push(current);
+
+                for (let neighbor of graph[current]) {
+                    let newCost = g[current] + neighbor.cost;
+
+                    if (g[neighbor.node] === undefined || newCost < g[neighbor.node]) {
+                        g[neighbor.node] = newCost;
+                        parent[neighbor.node] = current;
+
+                        if (!open.includes(neighbor.node) && !closed.includes(neighbor.node)) {
+                            open.push(neighbor.node);
+                        }
+                    }
+                }
+
+                output += `OPEN: ${open}\nCLOSED: ${closed}\n\n`;
+            }
+
+            document.getElementById("output").innerText = output;
+        }
+
+        // ---------------- HIGHLIGHT PATH ----------------
+        function highlightPath(path) {
+            let newEdges = edges.get();
+
+            newEdges.forEach(e => {
+                e.color = "gray";
+                e.width = 1;
+            });
+
+            for (let i = 0; i < path.length - 1; i++) {
+                let from = path[i];
+                let to = path[i + 1];
+
+                let edge = newEdges.find(e => e.from === from && e.to === to);
+                if (edge) {
+                    edge.color = "red";
+                    edge.width = 4;
+                }
+            }
+
+            edges.update(newEdges);
+        }
+
+        // ---------------- RUN A* ----------------
+        aStar("A", "F");
+
+    </script>
+
+</body>
+
+</html>
